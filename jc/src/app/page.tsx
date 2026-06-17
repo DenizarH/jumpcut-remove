@@ -134,12 +134,12 @@ export default function Home() {
         ))}
       </section>
 
-      <footer className={styles.footer}>
+     <footer className={styles.footer}>
         <p>🔒 100% free · no account · no upload · no watermark</p>
         <p>
           <a href="/privacy">Privacy Policy</a>
           <span className={styles.footerDivider}>·</span>
-          <a href="/privacy">Terms of Use</a>
+          <a href="/terms">Terms of Use</a>
           <span className={styles.footerDivider}>·</span>
           <span>© 2026 JumpCut Remove</span>
         </p>
