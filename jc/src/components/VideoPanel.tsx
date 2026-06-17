@@ -61,7 +61,6 @@ function resolveFormat(name: string) {
 
 function crf(q: string) { return q === 'high' ? '20' : q === 'medium' ? '26' : '32'; }
 
-// ─── Função Geradora de XML (Premiere / DaVinci) ───────────────────────────
 function buildFCPXML(keepRegions: [number, number][], fileName: string, totalDur: number): string {
   const fps = 30;
   const totalFrames = Math.round(totalDur * fps);
@@ -161,24 +160,20 @@ export default function VideoPanel({}: Props) {
     const currentFile = fileRef.current;
     let audioBuf = abufRef.current;
     if (!currentFile || !audioBuf) return;
-    
     setError(''); setInfo('');
     const thr = threshold, minSilSec = minSilence / 1000, padSec = padding / 1000;
     const silRegions  = getSilenceRegions(audioBuf, thr, minSilSec);
     const keepRegions = getKeepRegions(silRegions, audioBuf.duration, padSec);
-    
     if (keepRegions.length === 0) {
       setError('Nenhuma fala detectada. Altere a sensibilidade e tente de novo.');
       return;
     }
-
     const xmlContent = buildFCPXML(keepRegions, currentFile.name, audioBuf.duration);
     const xmlBlob = new Blob([xmlContent], { type: 'text/xml' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(xmlBlob);
     a.download = `${currentFile.name.replace(/\.[^.]+$/, '')}_cortes.xml`;
     a.click();
-
     setInfo(`✓ Arquivo XML gerado instantaneamente! Arraste-o para o Premiere ou DaVinci Resolve.`);
   };
 
@@ -221,36 +216,21 @@ export default function VideoPanel({}: Props) {
     const handler = ({ message }: { message: string }) => {
       const t = parseTime(message);
       if (t !== null && newDur > 0)
-        setProgress({ label: `Sincronizando quadros... ${fmt(t)} / ${fmt(newDur)}`, pct: Math.min(95, 55 + (t/newDur)*38) });
+        setProgress({ label: `Processando quadros... ${fmt(t)} / ${fmt(newDur)}`, pct: Math.min(95, 55 + (t/newDur)*38) });
     };
     ff.on('log', handler);
     
     try {
-      // Aqui está a MÁGICA DA SINCRONIZAÇÃO! Forçando o alinhamento de áudio/vídeo.
-      await ff.exec([
-        '-avoid_negative_ts', 'make_zero',
-        '-fflags', '+genpts',
-        '-f', 'concat',
-        '-safe', '0',
-        '-i', concat,
-        '-c:v', vcodec,
-        '-crf', crf(quality),
-        ...speed,
-        '-c:a', acodec,
-        '-af', 'aresample=async=1',
-        '-vsync', '1',
-        '-y', outName
-      ]);
+      await ff.exec(['-avoid_negative_ts', 'make_zero', '-fflags', '+genpts', '-f', 'concat', '-safe', '0', '-i', concat, '-c:v', vcodec, '-crf', crf(quality), ...speed, '-c:a', acodec, '-af', 'aresample=async=1', '-vsync', '1', '-y', outName]);
     } catch (e: any) {
       ff.off('log', handler);
       try { await ff.deleteFile(inName); } catch {}
       try { await ff.deleteFile(concat); } catch {}
-      setProgress(null); setError(`O FFmpeg falhou: ${e?.message ?? 'erro de memória ou codec'}. Para vídeos longos, utilize sempre a exportação XML.`); return;
+      setProgress(null); setError(`O FFmpeg falhou: ${e?.message ?? 'erro de memória ou codec'}. Tente a Exportação XML.`); return;
     }
     
     ff.off('log', handler);
     setProgress({ label: 'Extraindo arquivo final...', pct: 97 }); await tick();
-    
     let out: Uint8Array;
     try { out = await ff.readFile(outName); }
     catch { setProgress(null); setError('Não foi possível ler o vídeo renderizado.'); return; }
@@ -259,7 +239,7 @@ export default function VideoPanel({}: Props) {
     try { await ff.deleteFile(concat); } catch {}
     try { await ff.deleteFile(outName); } catch {}
     
-    if (out.length < 2000) { setProgress(null); setError('Arquivo gerado corrompido. Tente mudar a qualidade de saída.'); return; }
+    if (out.length < 2000) { setProgress(null); setError('Arquivo gerado corrompido.'); return; }
     
     setProgress({ label: 'Quase pronto...', pct: 99 }); await tick(150);
     const mime = outExt === 'webm' ? 'video/webm' : 'video/mp4';
@@ -269,7 +249,7 @@ export default function VideoPanel({}: Props) {
     setStats({ orig: fmt(totalDur), newDur: fmt(newDur), removed: '-' + fmt(totalDur - newDur) });
     redraw(abuf, threshold, minSilence);
     setProgress(null);
-    setInfo(`✓ Sucesso! ${sil.length} pausas removidas com sincronização corrigida.`);
+    setInfo(`✓ Sucesso! ${sil.length} pausas removidas.`);
   };
 
   const doDownload = useCallback(() => {
@@ -348,7 +328,7 @@ export default function VideoPanel({}: Props) {
         </div>
 
         <div className={styles.ctrl}>
-          <label>Qualidade do Vídeo (Apenas para Renderização Local)</label>
+          <label>Qualidade do Vídeo</label>
           <select value={quality} onChange={(e)=>setQuality(e.target.value)}>
             <option value="high">Alta (Recomendado)</option>
             <option value="medium">Média (Arquivo Leve)</option>
@@ -370,13 +350,31 @@ export default function VideoPanel({}: Props) {
         <div className={styles.stat}><p className={styles.statLabel}>Removido</p><p className={`${styles.statVal} ${styles.statCut}`}>{stats.removed}</p></div>
       </div>}
 
-      {progress && <div className={styles.progressWrap}>
-        <div className={styles.progHead}>
-          <span className={styles.progLabel}>{progress.label}</span>
-          <span className={styles.progPct}>{Math.round(progress.pct)}%</span>
+      {progress && (
+        <div className={styles.progressWrap}>
+          <div className={styles.progHead}>
+            <span className={styles.progLabel}>{progress.label}</span>
+            <span className={styles.progPct}>{Math.round(progress.pct)}%</span>
+          </div>
+          <div className={styles.progTrack}><div className={styles.progBar} style={{width:`${progress.pct}%`}}/></div>
+          
+          {/* BLOCO DE AVISO ADICIONADO AQUI */}
+          <div style={{
+            marginTop: '15px',
+            padding: '12px',
+            backgroundColor: 'rgba(255, 204, 0, 0.1)',
+            border: '1px solid #ffcc00',
+            borderRadius: '8px',
+            fontSize: '14px',
+            color: '#d4af37',
+            textAlign: 'center',
+            lineHeight: '1.4'
+          }}>
+            <strong>⚠️ Atenção:</strong> O processamento é feito localmente no seu hardware. 
+            A velocidade depende do seu processador. <strong>Não minimize ou saia desta aba</strong> para garantir a performance máxima e evitar que o navegador interrompa o processo.
+          </div>
         </div>
-        <div className={styles.progTrack}><div className={styles.progBar} style={{width:`${progress.pct}%`}}/></div>
-      </div>}
+      )}
 
       <div className={styles.actions} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         <button 
