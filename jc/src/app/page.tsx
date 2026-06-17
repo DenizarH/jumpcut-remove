@@ -141,6 +141,8 @@ export default function Home() {
           <span className={styles.footerDivider}>·</span>
           <a href="/terms-of-use">Terms of Use</a>
           <span className={styles.footerDivider}>·</span>
+          <a href="mailto:jumpcutremove@gmail.com">Contact</a>
+          <span className={styles.footerDivider}>·</span>
           <span>© 2026 JumpCut Remove</span>
         </p>
       </footer>
