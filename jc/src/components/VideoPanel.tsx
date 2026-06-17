@@ -217,16 +217,30 @@ export default function VideoPanel({}: Props) {
     catch { setProgress(null); setError('Arquivo muito grande para a memória máxima do navegador. Use a Exportação XML!'); return; }
     await ff.writeFile(concat, new TextEncoder().encode(buildConcat(keep, inName)));
     
-    setProgress({ label: 'Renderizando cortes locais...', pct: 40 }); await tick();
+    setProgress({ label: 'Renderizando cortes sincronizados...', pct: 40 }); await tick();
     const handler = ({ message }: { message: string }) => {
       const t = parseTime(message);
       if (t !== null && newDur > 0)
-        setProgress({ label: `Processando quadros... ${fmt(t)} / ${fmt(newDur)}`, pct: Math.min(95, 55 + (t/newDur)*38) });
+        setProgress({ label: `Sincronizando quadros... ${fmt(t)} / ${fmt(newDur)}`, pct: Math.min(95, 55 + (t/newDur)*38) });
     };
     ff.on('log', handler);
     
     try {
-      await ff.exec(['-f','concat','-safe','0','-i',concat, '-c:v',vcodec,'-crf',crf(quality),...speed, '-c:a',acodec, '-y',outName]);
+      // Aqui está a MÁGICA DA SINCRONIZAÇÃO! Forçando o alinhamento de áudio/vídeo.
+      await ff.exec([
+        '-avoid_negative_ts', 'make_zero',
+        '-fflags', '+genpts',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', concat,
+        '-c:v', vcodec,
+        '-crf', crf(quality),
+        ...speed,
+        '-c:a', acodec,
+        '-af', 'aresample=async=1',
+        '-vsync', '1',
+        '-y', outName
+      ]);
     } catch (e: any) {
       ff.off('log', handler);
       try { await ff.deleteFile(inName); } catch {}
@@ -255,7 +269,7 @@ export default function VideoPanel({}: Props) {
     setStats({ orig: fmt(totalDur), newDur: fmt(newDur), removed: '-' + fmt(totalDur - newDur) });
     redraw(abuf, threshold, minSilence);
     setProgress(null);
-    setInfo(`✓ Sucesso! ${sil.length} pausas removidas localmente.`);
+    setInfo(`✓ Sucesso! ${sil.length} pausas removidas com sincronização corrigida.`);
   };
 
   const doDownload = useCallback(() => {
