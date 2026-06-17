@@ -1,0 +1,374 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 1rem 4rem;
+  width: 100%;
+}
+
+/* ── HERO ── */
+.hero {
+  text-align: center;
+  padding: 3.5rem 1rem 2rem;
+  max-width: 680px;
+  width: 100%;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  background: var(--accent-dim);
+  border: 1px solid rgba(200, 240, 74, 0.2);
+  padding: 5px 14px;
+  border-radius: 99px;
+  margin-bottom: 1.5rem;
+}
+
+.logoDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.h1 {
+  font-size: clamp(26px, 5.5vw, 44px);
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 1.08;
+  margin-bottom: 16px;
+}
+
+.em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.heroSub {
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 10px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.heroPrivacy {
+  font-size: 13px;
+  font-family: 'DM Mono', monospace;
+  color: rgba(200, 240, 74, 0.7);
+  margin-bottom: 1.75rem;
+  letter-spacing: 0.02em;
+}
+
+.heroBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: center;
+}
+
+.hbadge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 4px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 99px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── HOW IT WORKS ── */
+.howSection {
+  width: 100%;
+  max-width: 680px;
+  margin-bottom: 2rem;
+}
+
+.howSteps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 500px) {
+  .howSteps {
+    grid-template-columns: 1fr;
+  }
+}
+
+.howStep {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  text-align: center;
+}
+
+.howNum {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.howTitle {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.howDesc {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  line-height: 1.5;
+}
+
+/* ── PRIVACY BANNER ── */
+.privacyBanner {
+  width: 100%;
+  max-width: 680px;
+  margin-bottom: 1.75rem;
+  background: rgba(200, 240, 74, 0.04);
+  border: 1px solid rgba(200, 240, 74, 0.15);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.pbIcon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pbTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+
+.pbDesc {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  line-height: 1.6;
+}
+
+/* ── MODE PICKER ── */
+.modeSection {
+  width: 100%;
+  max-width: 680px;
+  margin-bottom: 1.5rem;
+}
+
+.modeLabel {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.modeCards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .modeCards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modeCard {
+  background: var(--surface);
+  border: 1.5px solid var(--border2);
+  border-radius: 14px;
+  padding: 1.5rem 1.25rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.12s;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  display: block;
+  width: 100%;
+}
+
+.modeCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 40%, rgba(200, 240, 74, 0.05), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.modeCard:hover::before,
+.modeActive::before {
+  opacity: 1;
+}
+
+.modeCard:hover {
+  border-color: rgba(200, 240, 74, 0.35);
+  transform: translateY(-2px);
+}
+
+.modeActive {
+  border-color: var(--accent) !important;
+  background: rgba(200, 240, 74, 0.04);
+}
+
+.modeIcon {
+  font-size: 28px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.modeTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.modeDesc {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  line-height: 1.5;
+}
+
+.modeFormats {
+  margin-top: 10px;
+  font-size: 10px;
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+}
+
+.modeArrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--muted);
+  transition: color 0.2s, transform 0.2s;
+}
+
+.modeCard:hover .modeArrow,
+.modeActive .modeArrow {
+  color: var(--accent);
+  transform: translateY(-50%) translateX(3px);
+}
+
+/* ── PANEL WRAPPER ── */
+.panelWrapper {
+  width: 100%;
+  max-width: 680px;
+}
+
+/* ── FAQ ── */
+.faqSection {
+  width: 100%;
+  max-width: 680px;
+  margin-top: 2.5rem;
+}
+
+.faqTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  text-align: center;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+}
+
+.faqItem {
+  margin-bottom: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+
+.faqQ {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.faqA {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── FOOTER ── */
+.footer {
+  margin-top: 3rem;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  max-width: 680px;
+  width: 100%;
+  line-height: 2;
+}
+
+.footer a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer a:hover {
+  color: var(--accent);
+}
+
+.footerDivider {
+  color: var(--border2);
+  margin: 0 6px;
+}
+
+/* ── FEATURES GRID ── */
+.featSection { width:100%; max-width:680px; margin-top:3rem; }
+.featTitle { font-size:14px; font-weight:700; color:var(--muted); margin-bottom:1rem; text-align:center; letter-spacing:.04em; text-transform:uppercase; font-family:'DM Mono',monospace; }
+.featGrid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+@media(max-width:500px){ .featGrid{ grid-template-columns:1fr; } }
+.featCard { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem 1.1rem; }
+.featIcon { font-size:22px; display:block; margin-bottom:8px; }
+.featCardTitle { font-size:13px; font-weight:700; margin-bottom:4px; }
+.featCardDesc { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; line-height:1.5; }
+
+/* ── FAQ ── */
+.faqSection { width:100%; max-width:680px; margin-top:2.5rem; }
+.faqTitle { font-size:14px; font-weight:700; color:var(--muted); margin-bottom:1rem; text-align:center; letter-spacing:.04em; text-transform:uppercase; font-family:'DM Mono',monospace; }
+.faqItem { margin-bottom:.75rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; }
+.faqQ { font-size:13px; font-weight:600; margin-bottom:5px; }
+.faqA { font-size:12px; color:var(--muted); line-height:1.6; font-family:'DM Mono',monospace; }
