@@ -7,7 +7,7 @@ import {
 } from '@/lib/audio';
 import styles from './Panel.module.css';
 
-// ─── Inicialização do FFmpeg WASM Local ────────────────────────────────────
+// ─── Local FFmpeg WASM Initialization ────────────────────────────────────
 interface FFCtx { ff: any; fetchFile: (d: File | Blob) => Promise<Uint8Array>; }
 let _ff: FFCtx | null = null;
 let _ffP: Promise<FFCtx> | null = null;
@@ -68,7 +68,7 @@ function buildFCPXML(keepRegions: [number, number][], fileName: string, totalDur
 <!DOCTYPE xmeml>
 <xmeml version="4">
   <sequence id="sequence-1">
-    <name>${fileName} - Cortes Automáticos</name>
+    <name>${fileName} - Auto Cuts</name>
     <duration>${totalFrames}</duration>
     <rate><timebase>${fps}</timebase><ntsc>FALSE</ntsc></rate>
     <media><video><track>`;
@@ -145,14 +145,14 @@ export default function VideoPanel({}: Props) {
     setShowResult(false); setStats(null); setShowTimeline(false); setInfo(''); setError('');
     setFileMeta((f.size / 1024 / 1024).toFixed(1) + ' MB');
     setPreviewUrl(URL.createObjectURL(f));
-    setProgress({ label: 'Analisando áudio do vídeo...', pct: 15 }); await tick();
+    setProgress({ label: 'Analyzing video audio...', pct: 15 }); await tick();
     try {
       const buf = await getAudioCtx().decodeAudioData(await f.arrayBuffer());
       abufRef.current = buf; setAudioBuffer(buf);
       setFileMeta(`${(f.size/1024/1024).toFixed(1)} MB · ${fmt(buf.duration)} · ${buf.sampleRate} Hz`);
       setShowTimeline(true);
       setTimeout(() => redraw(buf, threshold, minSilence), 50);
-    } catch { setInfo('Timeline visual indisponível — mas o processamento vai funcionar normalmente.'); }
+    } catch { setInfo('Visual timeline unavailable — but processing will work normally.'); }
     setProgress(null);
   };
 
@@ -165,43 +165,43 @@ export default function VideoPanel({}: Props) {
     const silRegions  = getSilenceRegions(audioBuf, thr, minSilSec);
     const keepRegions = getKeepRegions(silRegions, audioBuf.duration, padSec);
     if (keepRegions.length === 0) {
-      setError('Nenhuma fala detectada. Altere a sensibilidade e tente de novo.');
+      setError('No speech detected. Adjust sensitivity and try again.');
       return;
     }
     const xmlContent = buildFCPXML(keepRegions, currentFile.name, audioBuf.duration);
     const xmlBlob = new Blob([xmlContent], { type: 'text/xml' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(xmlBlob);
-    a.download = `${currentFile.name.replace(/\.[^.]+$/, '')}_cortes.xml`;
+    a.download = `${currentFile.name.replace(/\.[^.]+$/, '')}_cuts.xml`;
     a.click();
-    setInfo(`✓ Arquivo XML gerado instantaneamente! Arraste-o para o Premiere ou DaVinci Resolve.`);
+    setInfo(`✓ XML file generated instantly! Drag and drop it into Premiere or DaVinci Resolve.`);
   };
 
   const processVideo = async () => {
     const f = fileRef.current; if (!f) return;
     setBlob(null); blobRef.current = null; setShowResult(false); setStats(null); setError(''); setInfo('');
     
-    setProgress({ label: 'Lendo trilha de áudio...', pct: 5 }); await tick();
+    setProgress({ label: 'Reading audio track...', pct: 5 }); await tick();
     let abuf = abufRef.current;
     if (!abuf) {
       try { abuf = await getAudioCtx().decodeAudioData(await f.arrayBuffer()); abufRef.current = abuf; setAudioBuffer(abuf); }
-      catch { setProgress(null); setError('Erro ao ler áudio. Tente usar MP4 ou WEBM.'); return; }
+      catch { setProgress(null); setError('Error reading audio. Try using MP4 or WEBM.'); return; }
     }
     
-    setProgress({ label: 'Identificando silêncios...', pct: 12 }); await tick();
+    setProgress({ label: 'Identifying silences...', pct: 12 }); await tick();
     const sil  = getSilenceRegions(abuf, threshold, minSilence / 1000);
     const keep = getKeepRegions(sil, abuf.duration, padding / 1000);
-    if (!keep.length) { setProgress(null); setError('Nenhuma fala detectada. Reduza a sensibilidade.'); return; }
+    if (!keep.length) { setProgress(null); setError('No speech detected. Reduce sensitivity.'); return; }
     const totalDur = abuf.duration;
     const newDur   = keep.reduce((a, [s, e]) => a + e - s, 0);
     
-    setProgress({ label: 'Iniciando FFmpeg WASM local...', pct: 20 }); await tick();
+    setProgress({ label: 'Launching local FFmpeg WASM...', pct: 20 }); await tick();
     let ctx: FFCtx;
     try { ctx = await loadFFmpeg(); }
-    catch { setProgress(null); setError('Erro ao carregar o FFmpeg no navegador.'); return; }
+    catch { setProgress(null); setError('Error loading FFmpeg in browser.'); return; }
     const { ff, fetchFile } = ctx;
     
-    setProgress({ label: 'Montando arquivos virtuais...', pct: 28 }); await tick();
+    setProgress({ label: 'Assembling virtual files...', pct: 28 }); await tick();
     const ext    = f.name.substring(f.name.lastIndexOf('.')) || '.mp4';
     const inName = `input${ext}`;
     const concat = 'segments.txt';
@@ -209,14 +209,14 @@ export default function VideoPanel({}: Props) {
     const outName = `output.${outExt}`;
     
     try { await ff.writeFile(inName, await fetchFile(f)); }
-    catch { setProgress(null); setError('Arquivo muito grande para a memória máxima do navegador. Use a Exportação XML!'); return; }
+    catch { setProgress(null); setError('File too large for browser memory limit. Use XML Export instead!'); return; }
     await ff.writeFile(concat, new TextEncoder().encode(buildConcat(keep, inName)));
     
-    setProgress({ label: 'Renderizando cortes sincronizados...', pct: 40 }); await tick();
+    setProgress({ label: 'Rendering synced cuts...', pct: 40 }); await tick();
     const handler = ({ message }: { message: string }) => {
       const t = parseTime(message);
       if (t !== null && newDur > 0)
-        setProgress({ label: `Processando quadros... ${fmt(t)} / ${fmt(newDur)}`, pct: Math.min(95, 55 + (t/newDur)*38) });
+        setProgress({ label: `Processing frames... ${fmt(t)} / ${fmt(newDur)}`, pct: Math.min(95, 55 + (t/newDur)*38) });
     };
     ff.on('log', handler);
     
@@ -226,22 +226,22 @@ export default function VideoPanel({}: Props) {
       ff.off('log', handler);
       try { await ff.deleteFile(inName); } catch {}
       try { await ff.deleteFile(concat); } catch {}
-      setProgress(null); setError(`O FFmpeg falhou: ${e?.message ?? 'erro de memória ou codec'}. Tente a Exportação XML.`); return;
+      setProgress(null); setError(`FFmpeg failed: ${e?.message ?? 'memory or codec error'}. Try XML Export instead.`); return;
     }
     
     ff.off('log', handler);
-    setProgress({ label: 'Extraindo arquivo final...', pct: 97 }); await tick();
+    setProgress({ label: 'Extracting final file...', pct: 97 }); await tick();
     let out: Uint8Array;
     try { out = await ff.readFile(outName); }
-    catch { setProgress(null); setError('Não foi possível ler o vídeo renderizado.'); return; }
+    catch { setProgress(null); setError('Could not read rendered video.'); return; }
     
     try { await ff.deleteFile(inName); } catch {}
     try { await ff.deleteFile(concat); } catch {}
     try { await ff.deleteFile(outName); } catch {}
     
-    if (out.length < 2000) { setProgress(null); setError('Arquivo gerado corrompido.'); return; }
+    if (out.length < 2000) { setProgress(null); setError('Generated file is corrupted.'); return; }
     
-    setProgress({ label: 'Quase pronto...', pct: 99 }); await tick(150);
+    setProgress({ label: 'Almost ready...', pct: 99 }); await tick(150);
     const mime = outExt === 'webm' ? 'video/webm' : 'video/mp4';
     const finalBlob = new Blob([out], { type: mime });
     blobRef.current = finalBlob; setBlob(finalBlob);
@@ -249,7 +249,7 @@ export default function VideoPanel({}: Props) {
     setStats({ orig: fmt(totalDur), newDur: fmt(newDur), removed: '-' + fmt(totalDur - newDur) });
     redraw(abuf, threshold, minSilence);
     setProgress(null);
-    setInfo(`✓ Sucesso! ${sil.length} pausas removidas.`);
+    setInfo(`✓ Success! ${sil.length} pauses removed.`);
   };
 
   const doDownload = useCallback(() => {
@@ -257,7 +257,7 @@ export default function VideoPanel({}: Props) {
     const ext = b.type.includes('mp4') ? 'mp4' : 'webm';
     const a = document.createElement('a');
     a.href = URL.createObjectURL(b);
-    a.download = `${(f?.name||'video').replace(/\.[^.]+$/, '')}_cortado.${ext}`;
+    a.download = `${(f?.name||'video').replace(/\.[^.]+$/, '')}_cut.${ext}`;
     a.click();
   }, []);
 
@@ -266,9 +266,9 @@ export default function VideoPanel({}: Props) {
       <div className={styles.engineBadge}>
         <span className={`${styles.engineDot} ${ffStatus==='ready'?styles.engineDotReady:ffStatus==='error'?styles.engineDotError:''}`} />
         <span className={styles.engineLabel}>
-          {ffStatus==='loading' && 'Carregando Motor FFmpeg WASM...'}
-          {ffStatus==='ready'   && `FFmpeg WASM Local · 100% Gratuito & Privado`}
-          {ffStatus==='error'   && 'Erro ao carregar o motor local.'}
+          {ffStatus==='loading' && 'Loading FFmpeg WASM Engine...'}
+          {ffStatus==='ready'   && `Local FFmpeg WASM · 100% Free & Private`}
+          {ffStatus==='error'   && 'Error loading local engine.'}
         </span>
       </div>
 
@@ -278,8 +278,8 @@ export default function VideoPanel({}: Props) {
         onDrop={(e)=>{e.preventDefault();setDragging(false);if(e.dataTransfer.files[0])loadVideo(e.dataTransfer.files[0]);}}
         onClick={()=>fileInputRef.current?.click()}>
         <div className={styles.dzIcon}>🎬</div>
-        <p className={styles.dzTitle}>Arraste seu vídeo aqui ou clique para escolher</p>
-        <p className={styles.dzSub}>MP4 · MOV · WEBM — Processado localmente no seu computador</p>
+        <p className={styles.dzTitle}>Drag your video here or click to browse</p>
+        <p className={styles.dzSub}>MP4 · MOV · WEBM — Processed locally on your computer</p>
         <input ref={fileInputRef} type="file" accept="video/*" style={{display:'none'}}
           onChange={(e)=> e.target.files?.[0] && loadVideo(e.target.files[0])} />
       </div>
@@ -295,18 +295,18 @@ export default function VideoPanel({}: Props) {
 
       <div className={styles.controls}>
         <div className={styles.ctrl}>
-          <label>Sensibilidade do Corte</label>
+          <label>Cut Sensitivity</label>
           <input type="range" min="0.001" max="0.08" step="0.001" value={threshold}
             onChange={(e)=>{const v=parseFloat(e.target.value);setThreshold(v);if(audioBuffer)redraw(audioBuffer,v,minSilence);}}/>
           <div className={styles.ctrlRow}>
-            <span className={styles.ctrlHint}>sensível</span>
+            <span className={styles.ctrlHint}>sensitive</span>
             <span className={styles.ctrlVal}>{threshold.toFixed(3)}</span>
-            <span className={styles.ctrlHint}>tolerante</span>
+            <span className={styles.ctrlHint}>tolerant</span>
           </div>
         </div>
 
         <div className={styles.ctrl}>
-          <label>Silêncio Mínimo</label>
+          <label>Minimum Silence</label>
           <input type="range" min="100" max="2000" step="50" value={minSilence}
             onChange={(e)=>{const v=parseInt(e.target.value);setMinSilence(v);if(audioBuffer)redraw(audioBuffer,threshold,v);}}/>
           <div className={styles.ctrlRow}>
@@ -317,37 +317,37 @@ export default function VideoPanel({}: Props) {
         </div>
 
         <div className={styles.ctrl}>
-          <label>Manter Pausas Naturais</label>
+          <label>Keep Natural Pauses</label>
           <input type="range" min="0" max="300" step="10" value={padding}
             onChange={(e)=>setPadding(parseInt(e.target.value))}/>
           <div className={styles.ctrlRow}>
-            <span className={styles.ctrlHint}>justo</span>
+            <span className={styles.ctrlHint}>tight</span>
             <span className={styles.ctrlVal}>{padding}ms</span>
-            <span className={styles.ctrlHint}>solto</span>
+            <span className={styles.ctrlHint}>loose</span>
           </div>
         </div>
 
         <div className={styles.ctrl}>
-          <label>Qualidade do Vídeo</label>
+          <label>Video Quality</label>
           <select value={quality} onChange={(e)=>setQuality(e.target.value)}>
-            <option value="high">Alta (Recomendado)</option>
-            <option value="medium">Média (Arquivo Leve)</option>
-            <option value="low">Baixa (Rápido)</option>
+            <option value="high">High (Recommended)</option>
+            <option value="medium">Medium (Lightweight)</option>
+            <option value="low">Low (Fast)</option>
           </select>
         </div>
       </div>
 
       {showTimeline && <div className={styles.timelineWrap}>
         <p className={styles.secLabel}>
-          Linha do tempo — <span style={{color:'var(--danger)'}}>■</span> removido · <span style={{color:'var(--accent)'}}>■</span> mantido
+          Timeline — <span style={{color:'var(--danger)'}}>■</span> removed · <span style={{color:'var(--accent)'}}>■</span> kept
         </p>
         <canvas ref={canvasRef} className={styles.waveformCanvas}/>
       </div>}
 
       {stats && <div className={styles.stats}>
         <div className={styles.stat}><p className={styles.statLabel}>Original</p><p className={styles.statVal}>{stats.orig}</p></div>
-        <div className={styles.stat}><p className={styles.statLabel}>Resultado</p><p className={`${styles.statVal} ${styles.statOk}`}>{stats.newDur}</p></div>
-        <div className={styles.stat}><p className={styles.statLabel}>Removido</p><p className={`${styles.statVal} ${styles.statCut}`}>{stats.removed}</p></div>
+        <div className={styles.stat}><p className={styles.statLabel}>Result</p><p className={`${styles.statVal} ${styles.statOk}`}>{stats.newDur}</p></div>
+        <div className={styles.stat}><p className={styles.statLabel}>Removed</p><p className={`${styles.statVal} ${styles.statCut}`}>{stats.removed}</p></div>
       </div>}
 
       {progress && (
@@ -358,7 +358,6 @@ export default function VideoPanel({}: Props) {
           </div>
           <div className={styles.progTrack}><div className={styles.progBar} style={{width:`${progress.pct}%`}}/></div>
           
-          {/* BLOCO DE AVISO ADICIONADO AQUI */}
           <div style={{
             marginTop: '15px',
             padding: '12px',
@@ -370,8 +369,8 @@ export default function VideoPanel({}: Props) {
             textAlign: 'center',
             lineHeight: '1.4'
           }}>
-            <strong>⚠️ Atenção:</strong> O processamento é feito localmente no seu hardware. 
-            A velocidade depende do seu processador. <strong>Não minimize ou saia desta aba</strong> para garantir a performance máxima e evitar que o navegador interrompa o processo.
+            <strong>⚠️ Attention:</strong> Processing is done locally on your hardware. 
+            Speed depends on your processor. <strong>Do not minimize or leave this tab</strong> to ensure maximum performance and prevent the browser from sleep-interrupting the process.
           </div>
         </div>
       )}
@@ -383,7 +382,7 @@ export default function VideoPanel({}: Props) {
           disabled={!file||!!progress||ffStatus==='loading'} 
           onClick={processVideo}
         >
-          {progress ? '⏳ Processando...' : ffStatus==='loading' ? '⏳ Carregando...' : '▶ Renderizar Vídeo Local'}
+          {progress ? '⏳ Processing...' : ffStatus==='loading' ? '⏳ Loading...' : '▶ Render Local Video'}
         </button>
 
         <button 
@@ -392,18 +391,18 @@ export default function VideoPanel({}: Props) {
           disabled={!file||!!progress} 
           onClick={exportXML}
         >
-          📄 Exportar XML (Premiere/DaVinci)
+          📄 Export XML (Premiere/DaVinci)
         </button>
         
         {blob && (
           <button className={`${styles.btnDownload} ${styles.proUnlocked}`} style={{ width: '100%', marginTop: '10px' }} onClick={doDownload}>
-            ↓ Baixar Arquivo Cortado (.mp4)
+            ↓ Download Cut File (.mp4)
           </button>
         )}
       </div>
 
       {showResult && <div className={styles.resultWrap}>
-        <p className={styles.secLabel} style={{marginBottom:7}}>Resultado Final</p>
+        <p className={styles.secLabel} style={{marginBottom:7}}>Final Result</p>
         <video controls playsInline src={resultUrl}
           style={{borderRadius:'var(--radius)',border:'1px solid var(--border)',background:'#000',display:'block',width:'100%'}}/>
       </div>}
