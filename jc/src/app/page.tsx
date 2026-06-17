@@ -139,7 +139,7 @@ export default function Home() {
         <p>
           <a href="/privacy">Privacy Policy</a>
           <span className={styles.footerDivider}>·</span>
-          <a href="/terms">Terms of Use</a>
+          <a href="/terms-of-use">Terms of Use</a>
           <span className={styles.footerDivider}>·</span>
           <span>© 2026 JumpCut Remove</span>
         </p>
